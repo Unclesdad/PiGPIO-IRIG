@@ -55,7 +55,7 @@ def generate_irig_b_frame():
     # debug print of full frame, marking position bits as P
     def mark_bit(i, b):
         if i % 10 == 0:
-            return 'P'
+            return ' P '
         return '1' if b else '0'
 
     frame_str = ''.join(mark_bit(i, b) for i, b in enumerate(frame))
