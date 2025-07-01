@@ -10,13 +10,18 @@ if not pi.connected:
 
 pi.set_mode(GPIO_PIN, pigpio.OUTPUT)
 
+from datetime import datetime
+
 def bcd_encode(value, bits):
+    """Encode a decimal value into a fixed-length BCD boolean array."""
+    num_digits = (bits + 3) // 4
     bcd = []
-    digits = list(f"{value:0{(bits + 3) // 4}d}")
-    for digit in reversed(digits):
-        bcd_digit = f"{int(digit):04b}"
-        bcd.extend(reversed([bool(int(b)) for b in bcd_digit]))
-    return list(reversed(bcd))[-bits:]
+
+    for digit in reversed(f"{value:0{num_digits}d}"):
+        bits4 = [bool(int(b)) for b in f"{int(digit):04b}"]
+        bcd = bits4 + bcd
+
+    return bcd[-bits:]
 
 def generate_irig_b_frame():
     frame = [False] * 60
@@ -27,26 +32,27 @@ def generate_irig_b_frame():
     hours = now.hour
     day_of_year = now.timetuple().tm_yday
 
-    # Position markers
+    print(f"\nEncoding time (UTC): {now.strftime('%Y-%m-%d %H:%M:%S')} | Day of Year: {day_of_year}")
+
+    # Position identifiers: every 10th bit
     for pos in range(0, 60, 10):
         frame[pos] = True
 
-    frame[1:9] = bcd_encode(seconds, 8)             # bits 1–8
-    frame[10:18] = bcd_encode(minutes, 8)           # bits 10–17
-    frame[20:28] = bcd_encode(hours, 8)             # bits 20–27
+    # Set each field in BCD
+    frame[1:9] = bcd_encode(seconds, 8)
+    frame[10:18] = bcd_encode(minutes, 8)
+    frame[20:28] = bcd_encode(hours, 8)
 
-    day_bcd = bcd_encode(day_of_year, 17)           # bits 30–39 and 40–48
+    day_bcd = bcd_encode(day_of_year, 17)
     frame[30:40] = day_bcd[:10]
     frame[40:49] = day_bcd[10:]
 
-    # Optional: Set remaining bits (e.g., control bits) explicitly to False
-    for i in range(60):
-        if frame[i] not in [True, False]:
-            frame[i] = False
+    # Debug: Print full IRIG-B frame
+    frame_str = ''.join(['1' if b else '0' for b in frame])
+    print(f"IRIG-B Frame: {frame_str}")
 
     assert len(frame) == 60, f"Frame is {len(frame)} bits instead of 60"
     return frame
-
 
 def send_irig_b_frame(frame):
     for i, bit in enumerate(frame):
