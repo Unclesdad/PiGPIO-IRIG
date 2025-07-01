@@ -2,7 +2,7 @@ import pigpio
 import time
 from datetime import datetime
 
-GPIO_PIN = 17  # Change this to your GPIO pin
+GPIO_PIN = 6  # Change this to your GPIO pin
 
 BIT_LENGTH = 1 # in seconds
 
