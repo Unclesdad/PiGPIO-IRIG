@@ -4,6 +4,8 @@ from datetime import datetime
 
 GPIO_PIN = 17  # Change this to your GPIO pin
 
+BIT_LENGTH = 1 # in seconds
+
 # Connect to pigpio daemon
 pi = pigpio.pi()
 if not pi.connected:
@@ -41,7 +43,6 @@ def generate_irig_b_frame():
     frame[20:28] = bcd_encode(hours,   8)
 
     day_bcd = bcd_encode(day_of_yr, 17)      # exactly 17 bits
-    # split into 10 and 9 bits, pad the second slice if too short
     hi = day_bcd[:10]                        # first 10 bits
     lo = day_bcd[10:]
     if len(lo) < 9:
@@ -57,30 +58,31 @@ def generate_irig_b_frame():
 
 def send_irig_b_frame(frame):
     for i, bit in enumerate(frame):
+        # print bit info
         if i % 10 == 0:
-            # position marker: 800 ms HIGH
+            print(f"Bit {i:02d}: P")
             pi.write(GPIO_PIN, 1)
-            time.sleep(0.8)
+            time.sleep(BIT_LENGTH * 0.8)
             pi.write(GPIO_PIN, 0)
-            time.sleep(0.2)
+            time.sleep(BIT_LENGTH * 0.2)
         elif bit:
-            # “1” bit: 500 ms HIGH
+            print(f"Bit {i:02d}: 1")
             pi.write(GPIO_PIN, 1)
-            time.sleep(0.5)
+            time.sleep(BIT_LENGTH * 0.5)
             pi.write(GPIO_PIN, 0)
-            time.sleep(0.5)
+            time.sleep(BIT_LENGTH * 0.5)
         else:
-            # “0” bit: 200 ms HIGH
+            print(f"Bit {i:02d}: 0")
             pi.write(GPIO_PIN, 1)
-            time.sleep(0.2)
+            time.sleep(BIT_LENGTH * 0.2)
             pi.write(GPIO_PIN, 0)
-            time.sleep(0.8)
+            time.sleep(BIT_LENGTH * 0.8)
 
 try:
     while True:
         frame = generate_irig_b_frame()
         send_irig_b_frame(frame)
-        print("Frame complete; restarting next minute…")
+        print(f"Frame complete; restarting next {BIT_LENGTH * 60 * 1000} milliseconds...")
 
 except KeyboardInterrupt:
     print("Interrupted by user.")
