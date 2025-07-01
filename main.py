@@ -27,25 +27,26 @@ def generate_irig_b_frame():
     hours = now.hour
     day_of_year = now.timetuple().tm_yday
 
-    # Mark position identifiers
+    # Position markers
     for pos in range(0, 60, 10):
-        frame[pos] = True  # We'll use this to send 800ms pulse
+        frame[pos] = True
 
-    # Seconds: bits 1–8
-    frame[1:9] = bcd_encode(seconds, 8)
+    frame[1:9] = bcd_encode(seconds, 8)             # bits 1–8
+    frame[10:18] = bcd_encode(minutes, 8)           # bits 10–17
+    frame[20:28] = bcd_encode(hours, 8)             # bits 20–27
 
-    # Minutes: bits 10–17
-    frame[10:18] = bcd_encode(minutes, 8)
-
-    # Hours: bits 20–27
-    frame[20:28] = bcd_encode(hours, 8)
-
-    # Day of year: bits 30–39, 40–48
-    day_bcd = bcd_encode(day_of_year, 17)
+    day_bcd = bcd_encode(day_of_year, 17)           # bits 30–39 and 40–48
     frame[30:40] = day_bcd[:10]
     frame[40:49] = day_bcd[10:]
 
+    # Optional: Set remaining bits (e.g., control bits) explicitly to False
+    for i in range(60):
+        if frame[i] not in [True, False]:
+            frame[i] = False
+
+    assert len(frame) == 60, f"Frame is {len(frame)} bits instead of 60"
     return frame
+
 
 def send_irig_b_frame(frame):
     for i, bit in enumerate(frame):
