@@ -2,7 +2,7 @@ import pigpio
 import time
 from datetime import datetime
 
-GPIO_PIN = 6  # Change this to your GPIO pin
+GPIO_PIN = 6 
 
 BIT_LENGTH = 1 # in seconds
 
@@ -52,8 +52,15 @@ def generate_irig_b_frame():
 
     assert len(frame) == 60, f"Frame is {len(frame)} bits instead of 60"
 
-    # debug print of full frame
-    print("IRIG-B Frame:", ''.join('1' if b else '0' for b in frame))
+    # debug print of full frame, marking position bits as P
+    def mark_bit(i, b):
+        if i % 10 == 0:
+            return 'P'
+        return '1' if b else '0'
+
+    frame_str = ''.join(mark_bit(i, b) for i, b in enumerate(frame))
+    print("IRIG-B Frame:", frame_str)
+
     return frame
 
 def send_irig_b_frame(frame):
