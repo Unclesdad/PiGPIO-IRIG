@@ -22,7 +22,7 @@ def bcd_encode(value, bits):
         bcd = bits4 + bcd
     return bcd[-bits:]
 
-def generate_irig_b_frame():
+def generate_irig_h_frame():
     frame = [False] * 60
 
     now = datetime.utcnow()
@@ -59,11 +59,11 @@ def generate_irig_b_frame():
         return '1' if b else '0'
 
     frame_str = ''.join(mark_bit(i, b) for i, b in enumerate(frame))
-    print("IRIG-B Frame:", frame_str)
+    print("IRIG-H Frame:", frame_str)
 
     return frame
 
-def send_irig_b_frame(frame):
+def send_irig_h_frame(frame):
     for i, bit in enumerate(frame):
         # print bit info
         if i % 10 == 0:
@@ -85,15 +85,21 @@ def send_irig_b_frame(frame):
             pi.write(GPIO_PIN, 0)
             time.sleep(BIT_LENGTH * 0.8)
 
-try:
-    while True:
-        frame = generate_irig_b_frame()
-        send_irig_b_frame(frame)
-        print(f"Frame complete; restarting next {BIT_LENGTH * 60 * 1000} milliseconds...")
+def send_full_irig_h_timecode(): 
+    frame = generate_irig_h_frame()
+    send_irig_h_frame(frame)
+    print(f"Frame complete; restarting next {BIT_LENGTH * 60 * 1000} milliseconds...")
 
-except KeyboardInterrupt:
-    print("Interrupted by user.")
-
-finally:
+def finish():
     pi.write(GPIO_PIN, 0)
     pi.stop()
+    
+try:
+    while True:
+        send_full_irig_h_timecode()
+
+except KeyboardInterrupt:
+    print("Interrupted by user")
+
+finally:
+    finish()
